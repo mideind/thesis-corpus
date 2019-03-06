@@ -27,7 +27,8 @@ BASE_URL = "https://skemman.is/simple-search?query=*"
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def get_url_info(url, verbose=0):
@@ -41,26 +42,21 @@ def get_url_info(url, verbose=0):
     logger.debug("parsed_url: %s", str(parsed_url))
     logger.debug("query_dict: %s", str(query_dict))
 
-    query_dict["rpp"] = str(int(50))
-    # Generate new url with changed query parameters
-    new_query_str = urllib.parse.urlencode(query_dict, doseq=True)
-    newTup = (scheme, netloc, path, new_query_str, fragment)
-    print()
-    pprint(new_query_str)
-    newUrl = urllib.parse.urlunsplit(newTup)
-    print()
-    pprint(newUrl)
+    # query_dict["rpp"] = str(int(50))
+    # # Generate new url with changed query parameters
+    # new_query_str = urllib.parse.urlencode(query_dict, doseq=True)
+    # newTup = (scheme, netloc, path, new_query_str, fragment)
+    # pprint(new_query_str)
+    # newUrl = urllib.parse.urlunsplit(newTup)
+    # pprint(newUrl)
 
     return query_dict
 
 
-# # info = get_url_info(test_url)
-# info = get_url_info(BASE_URL)u
-# pprint(info)
-
-SearchResultsTable = namedtuple("SearchResultsTable", "accepted, title, author, href")
-FileEntry = namedtuple(
-    "FileEntry", "filename, size, access, description, filetype, href"
+SearchResultsEntry = namedtuple("SearchResultsEntry", "accepted, title, author, href")
+Document = namedtuple("Document", "metadata, attrs, filelist")
+FileTableEntry = namedtuple(
+    "FileTableEntry", "filename, size, access, description, filetype, href"
 )
 
 
@@ -96,14 +92,10 @@ class Skemman:
     def get_results_from_page(cls, page_idx):
         url = cls.get_page_url(page_idx)
         logger.info("Fetching page url: %s", url)
-        # result = Fetcher.fetch_with_retry(url)
-        result, _ = Fetcher.fetch_maybe(url, "test_table.html", save=True)
+        result = Fetcher.fetch_with_retry(url)
         logger.info("Fetched page url")
-        # if result:
         results = cls.parse_results_page(result)
         return results
-        # else:
-        #     logger.info("no results")
 
     @classmethod
     def parse_results_page(cls, html):
@@ -112,7 +104,6 @@ class Skemman:
         logger.info("Soup is made")
         table = soup.find("table")
         results = []
-        i = 0
         for row in table.find_all("tr"):
             data = []
             for col in row.find_all("td"):
@@ -123,7 +114,7 @@ class Skemman:
 
             date_accepted, title, author = data
             href = title.find("a").attrs["href"]
-            table_entry = SearchResultsTable(
+            table_entry = SearchResultsEntry(
                 accepted=date_accepted.text,
                 title=title.text,
                 author=author.text,
@@ -131,26 +122,23 @@ class Skemman:
             )
             logger.debug("Found entry: %s", str(table_entry))
             results.append(table_entry)
-            i += 1
-            if i > 0:
-                break
         logger.info("Parsed %s entries", str(len(results)))
         return results
 
     @classmethod
-    def get_document_page(cls, href):
-        logger.info("Getting document page for %s", href)
+    def get_document_page(cls, search_item):
+        logger.info("Getting document page for %s", search_item)
         query_str, fragment = "", ""
-        url_tup = (cls._scheme, cls._netloc, href, query_str, fragment)
+        url_tup = (cls._scheme, cls._netloc, search_item.href, query_str, fragment)
         url = urllib.parse.urlunsplit(url_tup)
         logger.info("Getting document page from %s", url)
 
-        html, _ = Fetcher.fetch_maybe(url, "test_doc.html", save=True)
-        doc_info = cls.parse_document_page(html)
-        return doc_info
+        html = Fetcher.fetch_with_retry(url)
+        doc = cls.parse_document_page(search_item, html)
+        return doc
 
     @classmethod
-    def parse_document_page(cls, html):
+    def parse_document_page(cls, search_item, html):
         logger.info("Parsing document page")
         soup = bs(html, "html.parser")
         main_content = soup.find("div", id="index_page")
@@ -169,9 +157,9 @@ class Skemman:
         logger.debug("Breadcrumbs: %s", str(breadcrumbs))
 
         # Document metadata
-        content_meta = main_content.find("div", class_="attrList")
-        attrs = []
-        for attr in content_meta.find_all("div", class_="attr"):
+        content_metadata = main_content.find("div", class_="attrList")
+        document_attrs = []
+        for attr in content_metadata.find_all("div", class_="attr"):
             label_elem = attr.find("span", class_="attrLabel")
             label = (
                 label_elem.text.strip() if hasattr(label_elem, "text") else label_elem
@@ -187,11 +175,11 @@ class Skemman:
             if label is None or content is None:
                 continue
 
-            attrs.append([label, content])
+            document_attrs.append([label, content])
             logger.debug("Found attribute: %s", str([label, content]))
 
-        table = content_meta.find("table", class_="t-data-grid")
-        total = []
+        table = content_metadata.find("table", class_="t-data-grid")
+        filelist = []
         for entry in table.find_all("tr"):
             row = []
             for col in entry.find_all("td"):
@@ -202,7 +190,7 @@ class Skemman:
             filename, size, access, descr, filetype, link = row
             href = link.find("a").get("href")
 
-            file_entry = FileEntry(
+            file_entry = FileTableEntry(
                 filename=filename.text,
                 size=size.text,
                 access=access.text,
@@ -211,15 +199,19 @@ class Skemman:
                 href=href,
             )
 
-            total.append(file_entry)
-            # logger.debug("Found file data: %s", str(data))
+            filelist.append(file_entry)
             logger.debug("Found file data: %s", str(file_entry))
-        return total
+        document = Document(
+            metadata=search_item,
+            filelist=filelist,
+            attrs=document_attrs,
+        )
+        return document
 
 
 table_res = Skemman.get_results_from_page(1)
-pprint(table_res)
-entry = table_res[0]
-# for entry in table_res:
-document = Skemman.get_document_page(entry.href)
-pprint(document)
+for entry in table_res:
+    document = Skemman.get_document_page(entry)
+    pprint(document)
+    break
+
