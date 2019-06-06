@@ -8,6 +8,7 @@
 import os
 import time
 import requests
+import shutil
 
 
 TIME_TIL_RETRY = 2
@@ -64,6 +65,22 @@ class Fetcher:
         resp = requests.get(url)
         cls._time_last_fetched = time.time()
         resp.raise_for_status()
-        # if resp.status_code == requests.codes.OK:
-        #     return resp
         return resp
+
+
+def download_file(url, fname=None, dir_=None):
+    """ https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests """
+    local_filename = url.split("/")[-1] if fname is None else fname
+    r = requests.get(url, stream=True)
+    local_file_path = (
+        local_filename
+        if dir_ is None
+        else os.path.join(dir_, local_filename)
+    )
+    if dir_ is not None:
+        os.makedirs(dir_, exist_ok=True)
+
+    with open(local_file_path, "wb") as f:
+        shutil.copyfileobj(r.raw, f)
+
+    return local_file_path
