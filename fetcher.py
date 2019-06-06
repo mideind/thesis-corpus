@@ -25,7 +25,7 @@ class Fetcher:
         """ Fetch from url or from file if it has been
             cached previously """
         if os.path.isfile(path):
-            print("Found %s" % os.path.basename(path))
+            # print("Found %s" % os.path.basename(path))
             with open(path, "rb") as file:
                 return file.read(), True
         if save:
@@ -38,7 +38,7 @@ class Fetcher:
         content = cls.fetch_with_retry(url)
         if not content:
             return False
-        print("Saving {}".format(os.path.basename(path)))
+        # print("Saving {}".format(os.path.basename(path)))
         with open(path, "wb") as file:
             file.write(content)
         return content
@@ -46,13 +46,14 @@ class Fetcher:
     @classmethod
     def fetch_with_retry(cls, url):
         """ Fetch with retry """
-        print("Fetching with retry...", url)
+        # print("Fetching with retry...", url)
         for c in range(MAX_RETRY + 1):
             resp = cls.fetch(url)
             if resp:
                 return resp.content
             if c < MAX_RETRY:
-                print("Retrying...")
+                pass
+                # print("Retrying...")
         return False
 
     @classmethod

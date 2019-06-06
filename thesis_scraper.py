@@ -19,8 +19,12 @@ from bs4 import BeautifulSoup as bs
 from collections import namedtuple
 import os
 from pathlib import Path
+import json
+import unicodedata
+from icecream import ic
 
 from fetcher import Fetcher, download_file
+from skemman_db import SkemmanDb
 
 """https://skemman.is/simple-search?query=%2A&sort_by=score&order=desc&rpp=25&etal=0&start=1000"""
 
@@ -29,14 +33,16 @@ BASE_URL = "https://skemman.is/simple-search?query=*"
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-# logger.setLevel(logging.INFO)
+# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 _PROJECT_DIR = Path(os.path.realpath("__file__")).parent
 _DATA_DIR = _PROJECT_DIR / "data"
 
 
-SearchResultsEntry = namedtuple("SearchResultsEntry", "accepted, title, author, href")
+def breadcrumbs_to_path(breadcrumbs):
+    string = "/".join(breadcrumbs).replace(" ", "_").lower()
+    return unicodedata.normalize("NFKD", string).encode("ascii", "ignore").decode("ascii")
 
 
 class SkemmanDocument:
@@ -48,6 +54,7 @@ class SkemmanDocument:
         self.html = None
         self.attrs = None
         self.filelist = None
+        self.document_id = None
 
     def fetch(self):
         logger.info(f"Getting document page for {self.href}")
@@ -96,7 +103,8 @@ class SkemmanDocument:
 
             document_attrs.append([label, content])
             logger.debug("Found attribute: %s", str([label, content]))
-        self.attrs = document_attrs
+        self.attrs = {key: val for (key, val) in document_attrs}
+        self.attrs["taxonomy"] = json.dumps(breadcrumbs, ensure_ascii=False)
 
         table = content_metadata.find("table", class_="t-data-grid")
         filelist = []
@@ -109,6 +117,7 @@ class SkemmanDocument:
                 continue
             fname, size, access, descr, ftype, link = row
             href = link.find("a")
+            href = href.get("href") if href is not None else href
 
             file_entry = SkemmanFile(
                 self,
@@ -132,6 +141,31 @@ class SkemmanDocument:
         if len(title_fmt) > max_title_len:
             title_fmt = f"{title_fmt[:abbrev_len]}{dieresis}"
         return f"<SkemmanDocument {self.href}: {title_fmt}>"
+
+    def get_id(self, db):
+        self.document_id = db.get_document_id_by_href(self.href)
+
+    def get_id_or_store_document(self, db):
+        self.get_id(db)
+        if self.document_id is None:
+            cursor = db.insert_document(self)
+            self.document_id = cursor.lastrowid
+
+    def store_filelist(self, db):
+        if self.document_id is not None:
+            self.get_id_or_store_document(db)
+        rel_dir_path = breadcrumbs_to_path(json.loads(self.attrs["taxonomy"]))
+        cursor = db.insert_filelist(self.filelist, rel_dir_path, self.document_id)
+
+    def store_attrs(self, db):
+        if self.document_id is not None:
+            self.get_id_or_store_document(db)
+        cursor = db.insert_map(self.attrs, self.document_id)
+
+    def store_all(self, db):
+        self.get_id_or_store_document(db)
+        self.store_filelist(db)
+        self.store_attrs(db)
 
 
 class SkemmanFile:
@@ -234,8 +268,28 @@ class Skemman:
         logger.info(f"Found {len(results)} entries")
         return results
 
+def main():
+    search_page_idx = 1
+    db = SkemmanDb()
+    finished_pages = db.get_pages()
+    finished_hrefs = db.get_hrefs()
 
-docs = Skemman.get_results_from_page_idx(1)
-for doc in docs:
-    pprint(doc)
-    break
+    enter = True
+    docs = []
+    while enter or docs:
+        enter = False
+        while search_page_idx in finished_pages:
+            search_page_idx += 1
+        docs = Skemman.get_results_from_page_idx(search_page_idx)
+        for doc in docs:
+            if doc.href not in finished_hrefs:
+                doc.fetch()
+                doc.parse()
+                doc.store_all(db)
+                finished_hrefs.add(doc.href)
+        db.insert_page(search_page_idx)
+        finished_pages.add(search_page_idx)
+        search_page_idx += 1
+
+if __name__ == '__main__':
+    main()
