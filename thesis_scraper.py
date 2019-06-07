@@ -283,10 +283,14 @@ def main():
         docs = Skemman.get_results_from_page_idx(search_page_idx)
         for doc in docs:
             if doc.href not in finished_hrefs:
-                doc.fetch()
-                doc.parse()
-                doc.store_all(db)
+                doc.get_id_or_store_document(db)
                 finished_hrefs.add(doc.href)
+                try:
+                    doc.fetch()
+                    doc.parse()
+                    doc.store_all(db)
+                except AttributeError as e:
+                    logger.warning(f"Could not parse {doc.href}")
         db.insert_page(search_page_idx)
         finished_pages.add(search_page_idx)
         search_page_idx += 1
