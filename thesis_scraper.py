@@ -21,7 +21,12 @@ import os
 from pathlib import Path
 import json
 import unicodedata
-from icecream import ic
+
+try:
+    from icecream import ic
+    ic.configureOutput(includeContext=True)
+except ImportError:  # Graceful fallback if IceCream isn't installed.
+    ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
@@ -30,6 +35,7 @@ from skemman_db import SkemmanDb
 
 test_url = "https://skemman.is/simple-search?query=*&sort_by=score&order=desc&rpp=25&etal=0&start=25"
 BASE_URL = "https://skemman.is/simple-search?query=*"
+MAX_PAGE_IDX = 1300
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -248,39 +254,44 @@ class Skemman:
         logger.info("Attempting to parse results page")
         soup = bs(html, "html.parser")
         logger.info("Soup is made")
-        table = soup.find("table")
         results = []
-        for row in table.find_all("tr"):
-            data = []
-            for col in row.find_all("td"):
-                data.append(col)
-            if not data:
-                # skip header
+        for table in soup.find_all("table"):
+            caption = table.find("caption")
+            if  not caption or caption.text != "Niðurstöður":
                 continue
+            for row in table.find_all("tr"):
+                data = []
+                for col in row.find_all("td"):
+                    data.append(col)
+                if not data:
+                    # skip header
+                    continue
 
-            date_accepted, title, author = data
-            href = title.find("a").attrs["href"]
-            logger.debug(f"Found entry: {href}")
-            doc = SkemmanDocument(
-                href, title=title.text, author=author.text, accepted=date_accepted.text
-            )
-            results.append(doc)
-        logger.info(f"Found {len(results)} entries")
+                date_accepted, title, author = data
+                href = title.find("a").attrs["href"]
+                logger.debug(f"Found entry: {href}")
+                doc = SkemmanDocument(
+                    href,
+                    title=title.text,
+                    author=author.text,
+                    accepted=date_accepted.text
+                )
+                results.append(doc)
+            logger.info(f"Found {len(results)} entries")
         return results
 
+
 def main():
-    search_page_idx = 1
     db = SkemmanDb()
     finished_pages = db.get_pages()
     finished_hrefs = db.get_hrefs()
+    ic(finished_pages)
 
-    enter = True
     docs = []
-    while enter or docs:
-        enter = False
-        while search_page_idx in finished_pages:
-            search_page_idx += 1
-        docs = Skemman.get_results_from_page_idx(search_page_idx)
+    for page_idx in range(1, MAX_PAGE_IDX):
+        if page_idx in finished_pages:
+            continue
+        docs = Skemman.get_results_from_page_idx(page_idx)
         for doc in docs:
             if doc.href not in finished_hrefs:
                 doc.get_id_or_store_document(db)
@@ -291,9 +302,7 @@ def main():
                     doc.store_all(db)
                 except AttributeError as e:
                     logger.warning(f"Could not parse {doc.href}")
-        db.insert_page(search_page_idx)
-        finished_pages.add(search_page_idx)
-        search_page_idx += 1
+        db.insert_page(page_idx)
 
 if __name__ == '__main__':
     main()
