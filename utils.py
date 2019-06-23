@@ -147,6 +147,7 @@ def filter_open_access_main_pdfs(
         doc_href,
         title,
         is_local,
+            doc_id,
     ) in item_list:
         lname = fname.lower()
         ldescr = descr.lower().strip()
@@ -162,6 +163,7 @@ def filter_open_access_main_pdfs(
             doc_href,
             title,
             is_local,
+            doc_id,
         )
 
         if limit_file_size and size_in_mb > MAX_SIZE_IN_MB:
@@ -241,6 +243,7 @@ def get_open_access_article_pdfs(download_dir=None):
             ftype=".pdf",
             rel_dir=rel_dir,
             base_dir=download_dir,
+            doc_id=doc_id,
         )
         for (
             file_href,
@@ -252,6 +255,7 @@ def get_open_access_article_pdfs(download_dir=None):
             doc_href,
             title,
             is_local,
+            doc_id,
         ) in filter_open_access_main_pdfs(files)
     ]
     return files_out

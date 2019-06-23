@@ -216,6 +216,7 @@ class SkemmanDb:
                 , d.href AS document_href
                 , title
                 , is_local
+                , document_id
             FROM skemman_files AS f
             INNER JOIN skemman_documents AS d ON f.document_id = d.id
         """

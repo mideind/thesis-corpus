@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from traceback import print_exc
+import traceback
 
 try:
     from icecream import ic
@@ -53,7 +53,7 @@ def download_files(download_dir=None):
                 return
                 print("Exiting")
             except Exception as e:
-                print_exc(e)
+                traceback.print_exc()
                 pass
             time.sleep(COURTESY_TIME_IN_SECS)
     except KeyboardInterrupt as e:

@@ -224,12 +224,12 @@ class SkemmanFile:
         suffixes = self.local_path.suffixes + [".tmp"]
         tmp_path = self.local_path.with_suffix("".join(suffixes))
         if verbose:
-            print(f"Downloading file ({self.size} MB): {self.href} ...", flush=True)
+            print(f"Downloading file ({self.size} MB): {self.href}", flush=True)
         fpath = download_file(self.url, self.local_path, tmp_path, make_dirs=True)
 
         db.update_file_status(self.href, True)
         if verbose:
-            print(f"Downloaded file {self.rel_path}", flush=True)
+            print(f"Saved file to {self.relative_path}", flush=True)
         return fpath
 
     @property
@@ -238,10 +238,14 @@ class SkemmanFile:
         return path
 
     @property
+    def relative_path(self):
+        path = Path(self.rel_dir) / self.local_filename
+        return path
+
+    @property
     def local_filename(self):
-        translit_fname = utils.transliterate_path(self.fname)
-        doc_id = str(self.doc_id)
-        return f"{doc_id}.{translit_fname}"
+        size_str = str(self.size).replace(".", "_")
+        return f"{self.doc_id}-{size_str}.pdf"
 
     @property
     def is_on_disk(self):
