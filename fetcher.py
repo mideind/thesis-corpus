@@ -69,19 +69,21 @@ class Fetcher:
         return resp
 
 
-def download_file(url, fname=None, dir_=None):
-    """ https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests """
-    local_filename = url.split("/")[-1] if fname is None else fname
-    r = requests.get(url, stream=True)
-    local_file_path = (
-        local_filename
-        if dir_ is None
-        else os.path.join(dir_, local_filename)
-    )
-    if dir_ is not None:
-        os.makedirs(dir_, exist_ok=True)
+def download_file(url, path, tmp_path, make_dirs=False):
+    if make_dirs:
+        os.makedirs(path.parent, exist_ok=True)
 
-    with open(local_file_path, "wb") as f:
-        shutil.copyfileobj(r.raw, f)
+    # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests 
+    # TODO: compare shutil.copyfileobj(r.raw, f) to chunk streaming
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(tmp_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+            os.fsync(f)
 
-    return local_file_path
+    os.rename(tmp_path, path)
+    # https://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
+
+    return path

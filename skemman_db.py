@@ -44,10 +44,26 @@ class SkemmanDb:
             UNIQUE(page)
     )"""
 
+    _SQL_CREATE_VIEW_OPEN_ACCESS_PDFS = """
+    CREATE VIEW IF NOT EXISTS open_access_pdfs AS
+        SELECT
+            f.href AS file_href
+            , fname
+            , size
+            , descr
+            , dir
+            , d.href AS document_href
+            , title
+            , is_local
+        FROM skemman_files AS f INNER JOIN skemman_documents AS d
+            ON f.document_id = d.id
+        WHERE access = "Opinn" AND ftype = "PDF"
+    """
+
     def __init__(self):
         conn = sqlite3.connect(self._DB_NAME)
         try:
-            SkemmanDb._create_tables(conn)
+            SkemmanDb._create_tables_views(conn)
         except Exception as e:
             print(e)
             print("Could not create tables")
@@ -55,12 +71,13 @@ class SkemmanDb:
         self.conn = conn
 
     @classmethod
-    def _create_tables(cls, conn):
+    def _create_tables_views(cls, conn):
         with conn as c:
             c.execute(cls._SQL_CREATE_SKEMMAN_DOCUMENTS)
             c.execute(cls._SQL_CREATE_SKEMMAN_MAP)
             c.execute(cls._SQL_CREATE_SKEMMAN_FILES)
             c.execute(cls._SQL_CREATE_SKEMMAN_PAGES)
+            c.execute(cls._SQL_CREATE_VIEW_OPEN_ACCESS_PDFS)
 
     def insert_document(self, doc):
         sql = """INSERT INTO
@@ -87,7 +104,7 @@ class SkemmanDb:
             print(e)
             print(f"Could not insert map for {document_id}")
 
-    def insert_filelist(self, filelist, rel_dir_path, document_id):
+    def insert_filelist(self, filelist, rel_dir, document_id):
         sql = """INSERT INTO
             skemman_files (href, fname, size,
                            access, descr, ftype,
@@ -107,7 +124,7 @@ class SkemmanDb:
             sfile.descr,
             sfile.ftype,
             False,
-            rel_dir_path,
+            rel_dir,
             date_inserted,
             document_id,
         ) for sfile in filelist]
@@ -157,3 +174,96 @@ class SkemmanDb:
         except Exception as e:
             print(e)
 
+    def get_documents(self):
+        sql = """SELECT * FROM skemman_documents"""
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql)
+                docs = cursor.fetchall()
+                return docs
+        except Exception as e:
+            print(e)
+
+    def get_files(self):
+        sql = """SELECT fname, size, access FROM skemman_files"""
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql)
+                files = cursor.fetchall()
+                return files
+        except Exception as e:
+            print(e)
+
+    def get_open_pdfs(self):
+        sql = """SELECT fname, size, FROM open_access_pdfs"""
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql)
+                files = cursor.fetchall()
+                return files
+        except Exception as e:
+            print(e)
+
+    def get_filedocs(self):
+        sql = """
+            SELECT
+                f.href AS file_href
+                , fname
+                , size
+                , descr
+                , access
+                , dir
+                , d.href AS document_href
+                , title
+                , is_local
+            FROM skemman_files AS f
+            INNER JOIN skemman_documents AS d ON f.document_id = d.id
+        """
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql)
+                files = cursor.fetchall()
+                return files
+        except Exception as e:
+            print(e)
+
+    def update_file_status(self, href, status):
+        sql = """UPDATE skemman_files
+            SET is_local = ? WHERE href = ?"""
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql, (status, href))
+                return cursor
+        except Exception as e:
+            print(e)
+
+    def get_file_with_breadcrumbs(self):
+        sql = """SELECT
+                f.document_id
+                , fname
+                , href
+                , dir
+                , value
+                , key
+            FROM skemman_files AS f
+                INNER JOIN skemman_maps AS m
+                    ON m.document_id = f.document_id
+            WHERE key="taxonomy"
+        """
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql)
+                files = cursor.fetchall()
+                return files
+        except Exception as e:
+            print(e)
+
+    def update_many_rel_path(self, updates):
+        sql = """UPDATE skemman_files
+            SET dir = ? WHERE href = ? """
+        try:
+            with self.conn as c:
+                cursor = c.executemany(sql, updates)
+                return cursor
+        except Exception as e:
+            print(e)

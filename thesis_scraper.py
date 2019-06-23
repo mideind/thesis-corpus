@@ -15,21 +15,25 @@ Table has a list of available files
 import logging
 from pprint import pprint
 import urllib.parse
-from bs4 import BeautifulSoup as bs
 from collections import namedtuple
 import os
 from pathlib import Path
 import json
 import unicodedata
+import base64
+
+from bs4 import BeautifulSoup as bs
 
 try:
     from icecream import ic
+
     ic.configureOutput(includeContext=True)
 except ImportError:  # Graceful fallback if IceCream isn't installed.
     ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
+import utils
 
 """https://skemman.is/simple-search?query=%2A&sort_by=score&order=desc&rpp=25&etal=0&start=1000"""
 
@@ -43,12 +47,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 _PROJECT_DIR = Path(os.path.realpath("__file__")).parent
-_DATA_DIR = _PROJECT_DIR / "data"
+DATA_DIR = _PROJECT_DIR / "data"
 
 
 def breadcrumbs_to_path(breadcrumbs):
-    string = "/".join(breadcrumbs).replace(" ", "_").lower()
-    return unicodedata.normalize("NFKD", string).encode("ascii", "ignore").decode("ascii")
+    breadcrumbs = [item.replace("/", "-") for item in breadcrumbs]
+    return utils.transliterate_path("/".join(breadcrumbs)).lower()
 
 
 class SkemmanDocument:
@@ -160,8 +164,8 @@ class SkemmanDocument:
     def store_filelist(self, db):
         if self.document_id is not None:
             self.get_id_or_store_document(db)
-        rel_dir_path = breadcrumbs_to_path(json.loads(self.attrs["taxonomy"]))
-        cursor = db.insert_filelist(self.filelist, rel_dir_path, self.document_id)
+        rel_dir = breadcrumbs_to_path(json.loads(self.attrs["taxonomy"]))
+        cursor = db.insert_filelist(self.filelist, rel_dir, self.document_id)
 
     def store_attrs(self, db):
         if self.document_id is not None:
@@ -176,30 +180,71 @@ class SkemmanDocument:
 
 class SkemmanFile:
     def __init__(
-        self, document, href, fname=None, size=None, access=None, descr=None, ftype=None
+        self,
+        document,
+        href,
+        fname=None,
+        size=None,
+        access=None,
+        descr=None,
+        ftype=None,
+        is_local=None,
+        rel_dir=None,
+        doc_id=None,
+        base_dir=DATA_DIR,
     ):
         self.document = document
         self.fname = fname
-        self.size = size
+        self.size = size  # in MB
         self.access = access
         self.descr = descr
         self.ftype = ftype
         self.href = href
+        self.is_local = is_local
+        self.rel_dir = rel_dir
+        self.base_dir = base_dir
+        self.doc_id = doc_id
 
     @property
     def url(self):
         url = Skemman.make_url(self.href)
         return url
 
-    def download(self):
-        if self.is_local:
+    def sync_to_disk(self, db, verbose=False):
+        if self.is_on_disk and not self.is_local:
+            db.update_file_status(self.href, True)
+            if verbose:
+                print(f"Already on disk:     {self.href}")
+                print(f"File synced to db:   {self.href}", flush=True)
             return self.local_path
-        fpath = download_file(self.url, fname=self.fname, dir_=self._dir)
+        elif self.is_on_disk:
+            if verbose:
+                print(f"Already synced file: {self.href}", flush=True)
+            return self.local_path
+        suffixes = self.local_path.suffixes + [".tmp"]
+        tmp_path = self.local_path.with_suffix("".join(suffixes))
+        if verbose:
+            print(f"Downloading file ({self.size} MB): {self.href} ...", end=" ", flush=True)
+        fpath = download_file(self.url, self.local_path, tmp_path, make_dirs=True)
+
+        db.update_file_status(self.href, True)
+        if verbose:
+            print(f"done")
         return fpath
 
     @property
-    def is_local(self):
-        """Doc string"""
+    def local_path(self):
+        path = self.base_dir / self.rel_dir / self.local_filename
+        return path
+
+    @property
+    def local_filename(self):
+        translit_fname = utils.transliterate_path(self.fname)
+        doc_id = str(self.doc_id)
+        return f"{doc_id}.{translit_fname}"
+
+    @property
+    def is_on_disk(self):
         return self.local_path.is_file()
 
     def __repr__(self):
@@ -257,7 +302,7 @@ class Skemman:
         results = []
         for table in soup.find_all("table"):
             caption = table.find("caption")
-            if  not caption or caption.text != "Niðurstöður":
+            if not caption or caption.text != "Niðurstöður":
                 continue
             for row in table.find_all("tr"):
                 data = []
@@ -274,7 +319,7 @@ class Skemman:
                     href,
                     title=title.text,
                     author=author.text,
-                    accepted=date_accepted.text
+                    accepted=date_accepted.text,
                 )
                 results.append(doc)
             logger.info(f"Found {len(results)} entries")
@@ -304,5 +349,6 @@ def main():
                     logger.warning(f"Could not parse {doc.href}")
         db.insert_page(page_idx)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
