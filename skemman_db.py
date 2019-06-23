@@ -236,34 +236,3 @@ class SkemmanDb:
                 return cursor
         except Exception as e:
             print(e)
-
-    def get_file_with_breadcrumbs(self):
-        sql = """SELECT
-                f.document_id
-                , fname
-                , href
-                , dir
-                , value
-                , key
-            FROM skemman_files AS f
-                INNER JOIN skemman_maps AS m
-                    ON m.document_id = f.document_id
-            WHERE key="taxonomy"
-        """
-        try:
-            with self.conn as c:
-                cursor = c.execute(sql)
-                files = cursor.fetchall()
-                return files
-        except Exception as e:
-            print(e)
-
-    def update_many_rel_path(self, updates):
-        sql = """UPDATE skemman_files
-            SET dir = ? WHERE href = ? """
-        try:
-            with self.conn as c:
-                cursor = c.executemany(sql, updates)
-                return cursor
-        except Exception as e:
-            print(e)
