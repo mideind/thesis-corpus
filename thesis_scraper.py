@@ -191,7 +191,7 @@ class SkemmanFile:
         is_local=None,
         rel_dir=None,
         doc_id=None,
-        base_dir=DATA_DIR,
+        base_dir=None,
     ):
         self.document = document
         self.fname = fname
@@ -202,8 +202,8 @@ class SkemmanFile:
         self.href = href
         self.is_local = is_local
         self.rel_dir = rel_dir
-        self.base_dir = base_dir
         self.doc_id = doc_id
+        self.base_dir = DATA_DIR if base_dir is None else base_dir
 
     @property
     def url(self):
@@ -224,12 +224,12 @@ class SkemmanFile:
         suffixes = self.local_path.suffixes + [".tmp"]
         tmp_path = self.local_path.with_suffix("".join(suffixes))
         if verbose:
-            print(f"Downloading file ({self.size} MB): {self.href} ...", end=" ", flush=True)
+            print(f"Downloading file ({self.size} MB): {self.href} ...", flush=True)
         fpath = download_file(self.url, self.local_path, tmp_path, make_dirs=True)
 
         db.update_file_status(self.href, True)
         if verbose:
-            print(f"done")
+            print(f"Downloaded file {self.rel_path}", flush=True)
         return fpath
 
     @property
