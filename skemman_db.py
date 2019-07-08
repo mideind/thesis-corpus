@@ -27,6 +27,7 @@ class SkemmanDb:
             dir TEXT,
             inserted TEXT,
             document_id INTEGER,
+            language TEXT,
             UNIQUE(fname, document_id),
             FOREIGN KEY (document_id) REFERENCES skemman_documents (id)
     )"""
@@ -217,6 +218,7 @@ class SkemmanDb:
                 , title
                 , is_local
                 , document_id
+                , language
             FROM skemman_files AS f
             INNER JOIN skemman_documents AS d ON f.document_id = d.id
         """
@@ -234,6 +236,16 @@ class SkemmanDb:
         try:
             with self.conn as c:
                 cursor = c.execute(sql, (status, href))
+                return cursor
+        except Exception as e:
+            print(e)
+
+    def update_file_language(self, href, language):
+        sql = """UPDATE skemman_files
+            SET language = ? WHERE href = ?"""
+        try:
+            with self.conn as c:
+                cursor = c.execute(sql, (language, href))
                 return cursor
         except Exception as e:
             print(e)

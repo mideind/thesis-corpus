@@ -10,7 +10,6 @@ try:
 except ImportError:  # Silently ignore if IceCream isn't installed.
     ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
-# from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
 from utils import get_open_access_article_pdfs
 
@@ -23,20 +22,6 @@ COURTESY_TIME_IN_SECS = 2
 
 def clean_dirty_state(skemman_file):
     pass
-
-
-# # def download_all(skemman_file_list):
-# #     random.shuffle(skemman_file_list)
-# #     while skemman_file_list:
-# #         item = skemman_file_list.pop()
-# #         file_href, fname, size, descr, access, dir, doc_href, title = item
-# #         clean_dirty_state(item)
-# #         try:
-# #             # item.download
-# #             pass
-# #         except Exception as e:
-# #             print(f"Error occurred in: {item.}")
-# #             pass
 
 
 def download_files(download_dir=None):

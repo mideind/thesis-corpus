@@ -11,8 +11,7 @@ try:
 except ImportError:  # Graceful fallback if IceCream isn't installed.
     ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
-# from thesis_scraper import SkemmanFile
-import thesis_scraper
+from skemman import SkemmanFile
 from skemman_db import SkemmanDb
 
 
@@ -147,7 +146,8 @@ def filter_open_access_main_pdfs(
         doc_href,
         title,
         is_local,
-            doc_id,
+        doc_id,
+        language,
     ) in item_list:
         lname = fname.lower()
         ldescr = descr.lower().strip()
@@ -164,6 +164,7 @@ def filter_open_access_main_pdfs(
             title,
             is_local,
             doc_id,
+            language,
         )
 
         if limit_file_size and size_in_mb > MAX_SIZE_IN_MB:
@@ -232,7 +233,7 @@ def get_open_access_article_pdfs(download_dir=None):
     db = SkemmanDb()
     files = db.get_filedocs()
     files_out = [
-        thesis_scraper.SkemmanFile(
+        SkemmanFile(
             doc_href,
             file_href,
             fname=fname,
@@ -244,6 +245,7 @@ def get_open_access_article_pdfs(download_dir=None):
             rel_dir=rel_dir,
             base_dir=download_dir,
             doc_id=doc_id,
+            language=language,
         )
         for (
             file_href,
@@ -256,6 +258,7 @@ def get_open_access_article_pdfs(download_dir=None):
             title,
             is_local,
             doc_id,
+            language,
         ) in filter_open_access_main_pdfs(files)
     ]
     return files_out
