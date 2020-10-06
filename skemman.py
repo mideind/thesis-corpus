@@ -19,7 +19,40 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
 
 from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
-import utils
+#import utils
+
+
+# shitmix to prevent circular import
+SUBS = {
+    "á": "a",
+    "ð": "d",
+    "é": "e",
+    "í": "i",
+    "ó": "o",
+    "ú": "u",
+    "ý": "y",
+    "þ": "th",
+    "æ": "ae",
+    "ö": "o",
+    "Á": "A",
+    "Ð": "D",
+    "É": "E",
+    "Í": "I",
+    "Ó": "O",
+    "Ú": "U",
+    "Ý": "Y",
+    "Þ": "TH",
+    "Æ": "AE",
+    "Ö": "O",
+    " ": "_",
+    ",": ".",
+}
+SUBS = tuple(SUBS.items())
+def transliterate_path(text):
+    out = text
+    for sub in SUBS:
+        out = out.replace(*sub)
+    return out
 
 """
 root table is here:
@@ -51,7 +84,8 @@ DATA_DIR = _PROJECT_DIR / "data"
 
 def breadcrumbs_to_path(breadcrumbs):
     breadcrumbs = [item.replace("/", "-") for item in breadcrumbs]
-    return utils.transliterate_path("/".join(breadcrumbs)).lower()
+    #return utils.transliterate_path("/".join(breadcrumbs)).lower()
+    return transliterate_path("/".join(breadcrumbs)).lower()
 
 
 class SkemmanDocument:
