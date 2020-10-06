@@ -306,7 +306,7 @@ class Skemman:
 
         query_dict = {
             "query": "*",
-            "sort_by": "score",
+            "sort_by": "dc.date.issued_dt",
             "order": "desc",
             "rpp": str(results_per_page),
             "etal": "0",  # what is this?
