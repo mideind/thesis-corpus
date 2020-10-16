@@ -17,14 +17,17 @@ except ImportError:  # Silently ignore if IceCream isn't installed.
 
 import sqlalchemy
 import sqlalchemy.sql
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, Sequence
+from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, Sequence, func
+
+from typing import Dict, Any
 
 from reynir import bintokenizer
-from tokenizer import paragraphs, mark_paragraphs
-from tokenizer import correct_spaces
+from tokenizer import paragraphs, mark_paragraphs, correct_spaces
 
 from skemman_db import SkemmanDb
 from utils import get_open_access_article_pdfs
+
+import config
 
 """
 # number of files in db
@@ -48,22 +51,24 @@ sqlite3 segment.db "select text from segments;" | wc -w
 277_426_436
 """
 
-_PDFBOX_PATH = "/home/haukur/Downloads/pdfbox-app-2.0.16.jar"
-DATA_DIR = Path("/mnt/windows/thesiscorpus/data")
-TMP_DIR = Path("/tmp") / "thesiscorpus"
-SAMPLE = DATA_DIR / Path(
-    "/haskoli_islands/felagsvisindasvid/meistaraprofsritgerdir_-_felagsvisindasvid/1235-0_383.txt"
-)
-OUT_DIR = Path("/home/haukur/Projects/thesiscorpus/data")
-NOISY_SAMPLE_TXT = Path("samples/sample_noisy.pdfbox.txt")
+# TODO: Refactor use of this into the full featured segment
+SimpleSegment = namedtuple("Segment", "index text")
 
-Segment = namedtuple("Segment", "index text")
+
+class Segment:
+    def __init__(self, text: str, metadata: Dict[str, Any] = {}):
+        self.text: str = text
+        self.metadata: Dict[str, Any] = metadata
+
+    def __repr__(self):
+        return self.text
 
 
 class SegmentDb:
-    db_url = "sqlite:///segment.db"
-
     def __init__(self):
+        self.db_file = config.db_dir() / "segment.db"
+        self.db_url = "sqlite:///" + str(self.db_file)
+
         self.engine = sqlalchemy.create_engine(self.db_url)
         metadata = sqlalchemy.MetaData()
         self.documents = sqlalchemy.Table(
@@ -76,11 +81,18 @@ class SegmentDb:
             "segments",
             metadata,
             Column("id", sqlalchemy.Integer, autoincrement=True, primary_key=True),
-            sqlalchemy.Column("sentence_index", sqlalchemy.String),
-            sqlalchemy.Column("text", sqlalchemy.String),
-            sqlalchemy.Column(
-                "document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")
-            ),
+            Column("sentence_index", sqlalchemy.Integer),
+            Column("text", sqlalchemy.String),
+            Column("document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")),
+        )
+        self.cleaned_segments = Table(
+            "cleaned_segments",
+            metadata,
+            Column("id", sqlalchemy.Integer, autoincrement=True, primary_key=True),
+            Column("segment_index", sqlalchemy.Integer),
+            Column("text", sqlalchemy.String),
+            Column("document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")),
+            Column("metadata", sqlalchemy.String),
         )
         metadata.create_all(self.engine)
 
@@ -102,17 +114,36 @@ class SegmentDb:
             result = connection.execute(sel)
             return set(row.skemman_id for row in result.fetchall())
 
+    def get_segments_for_document(self, document_id):
+        q = self.segments.select() \
+            .where(self.segments.c.document_id == document_id) \
+            .order_by(self.segments.c.sentence_index)
+
+        with self.engine.begin() as conn:
+            res = conn.execute(q)
+            return [Segment(r[2]) for r in res]
+
+    def get_max_docid(self):
+        q = sqlalchemy.sql.select([func.max(self.documents.c.id)])
+        with self.engine.begin() as conn:
+            res = conn.execute(q)
+            return res.first()[0]
+
 
 def gen_pdf():
     segment_db = SegmentDb()
     completed_files = segment_db.get_completed()
+    print("total files", len(get_open_access_article_pdfs()))
+    #print("files to consider", get_open_access_article_pdfs())
     rem_files = [
         item
-        for item in get_open_access_article_pdfs(download_dir=DATA_DIR)
+        for item in get_open_access_article_pdfs()
         if item.is_on_disk
-        and item.language == "icelandic"
+        #and item.language == "icelandic"
         and item.url not in completed_files
     ]
+    #print(rem_files)
+    print("remaining files", len(rem_files))
     for (idx, item) in enumerate(rem_files):
         try:
             skemman_id = item.url
@@ -124,12 +155,13 @@ def gen_pdf():
             print(f"Exiting... {remain} remaining")
             return
         except Exception:
+            print("boop")
             continue
 
 
 def process_pdf(db, item):
     tmp_fname = str(uuid.uuid4())
-    tmp_path = TMP_DIR / tmp_fname
+    tmp_path = config.tmp_dir() / tmp_fname
     success = pdfbox_to_text(item.local_path, tmp_path)
     if success:
         with open(tmp_path, "r") as fh:
@@ -155,12 +187,12 @@ def segment_text(text):
         par_idx += par_offset
         for (rel_sent_idx, (offset, sentence)) in enumerate(paragraph):
             sent_idx = sent_offset + rel_sent_idx
-            # yield Segment(index=f"{par_idx}.{sent_idx}", text=toks_to_text(sentence))
-            yield Segment(index=str(sent_idx), text=toks_to_text(sentence))
+            # yield SimpleSegment(index=f"{par_idx}.{sent_idx}", text=toks_to_text(sentence))
+            yield SimpleSegment(index=str(sent_idx), text=toks_to_text(sentence))
 
 
 def test_segment():
-    files_on_disk = get_open_access_article_pdfs(download_dir=DATA_DIR)
+    files_on_disk = get_open_access_article_pdfs()
     files_on_disk = [item for item in files_on_disk if item.is_on_disk]
     files_on_disk = [item for item in files_on_disk if item.language == "icelandic"]
     random.seed(1337)
@@ -178,12 +210,13 @@ def test_segment():
 
 
 def pdfbox_to_text(pdf_path, txt_path):
+    print("trying to extract text with pdfbox:", pdf_path)
     try:
         ret = subprocess.run(
             [
                 "java",
                 "-jar",
-                str(_PDFBOX_PATH),
+                str(config.pdfbox_path),
                 "ExtractText",
                 str(pdf_path),
                 str(txt_path),
@@ -200,9 +233,8 @@ def pdfbox_to_text(pdf_path, txt_path):
 
 
 def tmp_dir_maintenance():
-    os.makedirs(TMP_DIR, exist_ok=True)
-    for fname in os.listdir(TMP_DIR):
-        abs_path = TMP_DIR / fname
+    for fname in os.listdir(config.tmp_dir()):
+        abs_path = config.tmp_dir() / fname
         os.remove(abs_path)
 
 
@@ -213,3 +245,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

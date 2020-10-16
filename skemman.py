@@ -3,10 +3,10 @@ from pprint import pprint
 import urllib.parse
 from collections import namedtuple
 import os
-from pathlib import Path
 import json
 import unicodedata
 import base64
+from pathlib import Path
 
 from bs4 import BeautifulSoup as bs
 
@@ -19,11 +19,11 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
 
 from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
-#import utils
+import config
 
 
 # shitmix to prevent circular import
-SUBS = {
+_SUBS = {
     "á": "a",
     "ð": "d",
     "é": "e",
@@ -47,7 +47,7 @@ SUBS = {
     " ": "_",
     ",": ".",
 }
-SUBS = tuple(SUBS.items())
+SUBS = tuple(_SUBS.items())
 def transliterate_path(text):
     out = text
     for sub in SUBS:
@@ -77,9 +77,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 logger.setLevel(logging.INFO)
-
-_PROJECT_DIR = Path(os.path.realpath("__file__")).parent
-DATA_DIR = _PROJECT_DIR / "data"
 
 
 def breadcrumbs_to_path(breadcrumbs):
@@ -237,7 +234,7 @@ class SkemmanFile:
         self.is_local = is_local
         self.rel_dir = rel_dir
         self.doc_id = doc_id
-        self.base_dir = DATA_DIR if base_dir is None else base_dir
+        self.base_dir = config.pdf_dir() if base_dir is None else base_dir
         self.language = language
 
     @property
@@ -307,7 +304,7 @@ class Skemman:
         query_dict = {
             "query": "*",
             "sort_by": "dc.date.issued_dt",
-            "order": "desc",
+            "order": "asc",
             "rpp": str(results_per_page),
             "etal": "0",  # what is this?
             "start": str(start_idx),

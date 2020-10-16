@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-    Module doc string
-"""
 
 import os
 import time
@@ -11,7 +6,7 @@ import requests
 import shutil
 
 
-TIME_TIL_RETRY = 2
+TIME_TIL_RETRY = 0.01
 MAX_RETRY = 5
 
 

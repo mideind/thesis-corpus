@@ -1,47 +1,26 @@
-import logging
-from pprint import pprint
-import urllib.parse
-from collections import namedtuple
-import os
-from pathlib import Path
-import json
-import unicodedata
-import base64
 
-from bs4 import BeautifulSoup as bs
+import time
 
-try:
-    from icecream import ic
-
-    ic.configureOutput(includeContext=True)
-except ImportError:  # Graceful fallback if IceCream isn't installed.
-    ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
-
-from fetcher import Fetcher, download_file
 from skemman_db import SkemmanDb
-from skemman import SkemmanDocument, SkemmanFile, Skemman
+from skemman import Skemman
+import config
 import utils
 
-"""https://skemman.is/simple-search?query=%2A&sort_by=score&order=desc&rpp=25&etal=0&start=1000"""
-
-test_url = "https://skemman.is/simple-search?query=*&sort_by=score&order=desc&rpp=25&etal=0&start=25"
-BASE_URL = "https://skemman.is/simple-search?query=*"
-MAX_PAGE_IDX = 1300
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
-
-_PROJECT_DIR = Path(os.path.realpath("__file__")).parent
-DATA_DIR = _PROJECT_DIR / "data"
+MAX_PAGE_IDX = 1441 # TODO: Get rid of this
 
 
-def main():
+def scrape_skemman(max_documents: int):
+    current_documents = utils.get_open_access_article_pdfs()
+
+    remaining_count = max_documents - len(current_documents)
+    print("remaining documents to scrape:", remaining_count)
+    if remaining_count <= 0 and max_documents > 0:
+        print("already know enough docs")
+        return
+
     db = SkemmanDb()
     finished_pages = db.get_pages()
     finished_hrefs = db.get_hrefs()
-    ic(finished_pages)
 
     docs = []
     for page_idx in range(1, MAX_PAGE_IDX):
@@ -56,10 +35,21 @@ def main():
                     doc.fetch()
                     doc.parse()
                     doc.store_all(db)
+
+                    # TODO: Not accurate due to some documents not
+                    # being open access. Good enough for testing though.
+                    remaining_count -= 1
+                    if remaining_count <= 0:
+                        break
                 except AttributeError as e:
-                    logger.warning(f"Could not parse {doc.href}")
+                    print(f"Could not parse {doc.href}")
+
+            time.sleep(config.scrape_delay)
+                    
+        if remaining_count <= 0:
+            break
         db.insert_page(page_idx)
 
 
 if __name__ == "__main__":
-    main()
+    scrape_skemman(10)

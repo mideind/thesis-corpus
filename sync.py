@@ -12,22 +12,18 @@ except ImportError:  # Silently ignore if IceCream isn't installed.
 
 from skemman_db import SkemmanDb
 from utils import get_open_access_article_pdfs
+import config
 
-
-_PROJECT_DIR = Path(os.path.realpath("__file__")).parent
-DATA_DIR = _PROJECT_DIR / "data"
-
-COURTESY_TIME_IN_SECS = 2
 
 
 def clean_dirty_state(skemman_file):
     pass
 
 
-def download_files(download_dir=None):
+def download_files():
     fetch_status()
-    print(f"Downloading files to: {download_dir}")
-    files_out = get_open_access_article_pdfs(download_dir=download_dir)
+    print(f"Downloading files to: {config.pdf_dir()}")
+    files_out = get_open_access_article_pdfs()
     db = SkemmanDb()
     remaining_files = [item for item in files_out if not item.is_local]
     try:
@@ -40,7 +36,7 @@ def download_files(download_dir=None):
             except Exception as e:
                 traceback.print_exc()
                 pass
-            time.sleep(COURTESY_TIME_IN_SECS)
+            time.sleep(config.scrape_delay)
     except KeyboardInterrupt as e:
         print("Exiting")
         return
@@ -86,7 +82,7 @@ def main():
         dest="sync",
         action="store_true",
         required=False,
-        help="Get status of sync",
+        help="Do a sync",
     )
     parser.add_argument(
         "--dir",

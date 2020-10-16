@@ -1,9 +1,10 @@
 import sqlite3
 import datetime
 
+import config
+
 
 class SkemmanDb:
-    _DB_NAME = "skemman.db"
 
     _SQL_CREATE_SKEMMAN_DOCUMENTS = """CREATE TABLE IF NOT EXISTS skemman_documents (
             id INTEGER PRIMARY KEY,
@@ -62,6 +63,7 @@ class SkemmanDb:
     """
 
     def __init__(self):
+        self._DB_NAME = config.db_dir() / "skemman.db"
         conn = sqlite3.connect(self._DB_NAME)
         try:
             SkemmanDb._create_tables_views(conn)

@@ -14,11 +14,9 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
 from skemman import SkemmanFile
 from skemman_db import SkemmanDb
 
+import config
 
-_PROJECT_DIR = Path(os.path.realpath("__file__")).parent
-DATA_DIR = _PROJECT_DIR / "data"
-
-SUBS = {
+_SUBS = {
     "á": "a",
     "ð": "d",
     "é": "e",
@@ -42,7 +40,7 @@ SUBS = {
     " ": "_",
     ",": ".",
 }
-SUBS = tuple(SUBS.items())
+SUBS = tuple(_SUBS.items())
 
 B_IN_KB = 10 ** 3
 B_IN_MB = 10 ** 6
@@ -229,7 +227,7 @@ def filter_open_access_main_pdfs(
     return files_out
 
 
-def get_open_access_article_pdfs(download_dir=None):
+def get_open_access_article_pdfs():
     db = SkemmanDb()
     files = db.get_filedocs()
     files_out = [
@@ -243,7 +241,7 @@ def get_open_access_article_pdfs(download_dir=None):
             is_local=is_local,
             ftype=".pdf",
             rel_dir=rel_dir,
-            base_dir=download_dir,
+            base_dir=None, # Get from config
             doc_id=doc_id,
             language=language,
         )

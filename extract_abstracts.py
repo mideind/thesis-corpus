@@ -112,8 +112,7 @@ how does hunalign/gale-church/bleualign handle adjacent swapping e.g. true align
 
 """
 
-PREFIX = Path("/mnt/windows/thesiscorpus/data")
-PATHS_FILE = PREFIX / "both_abstracts.paths"
+PATHS_FILE = config.data_dir / "both_abstracts.paths"
 
 
 def read_file(path):
@@ -124,8 +123,7 @@ def read_file(path):
     return lines
 
 
-PATHS = [PREFIX / path for path in read_file(PATHS_FILE)]
-REEXTRACTED_DIR = Path("/home/haukur/Project/thesiscorpus/pdfbox")
+PATHS = [config.data_dir / path for path in read_file(PATHS_FILE)]
 SAMPLE_INDEX = 1
 SAMPLE_PATH = PATHS[SAMPLE_INDEX]
 ENG_START_PATS = ("Abstract", "ABSTRACT")
@@ -404,10 +402,12 @@ class PdfBoxOutput:
 
 
 class AbstractsDb:
-    db_uri = "sqlite:///abstracts.db"
 
     def __init__(self):
-        self.engine = sqlalchemy.create_engine(self.db_uri)
+        self.db_file = config.db_dir() / "abstracts.db"
+        self.db_url = "sqlite:///" + str(self.db_file)
+
+        self.engine = sqlalchemy.create_engine(self.db_url)
         metadata = sqlalchemy.MetaData()
         self.abstracts = sqlalchemy.Table(
             "abstracts",
