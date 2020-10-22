@@ -98,14 +98,9 @@ class SegmentDb:
 
     def insert_segments(self, segments, skemman_id):
         with self.engine.begin() as connection:
-            result = connection.execute(
-                self.documents.insert(), skemman_id=skemman_id
-            )
+            result = connection.execute(self.documents.insert(), skemman_id=skemman_id)
             key = result.inserted_primary_key[0]
-            segs = [
-                {"sentence_index": segment.index, "text": segment.text, "document_id": key}
-                    for segment in segments
-            ]
+            segs = [{"sentence_index": segment.index, "text": segment.text, "document_id": key} for segment in segments]
             connection.execute(self.segments.insert(), segs)
 
     def get_completed(self):
@@ -115,9 +110,11 @@ class SegmentDb:
             return set(row.skemman_id for row in result.fetchall())
 
     def get_segments_for_document(self, document_id):
-        q = self.segments.select() \
-            .where(self.segments.c.document_id == document_id) \
+        q = (
+            self.segments.select()
+            .where(self.segments.c.document_id == document_id)
             .order_by(self.segments.c.sentence_index)
+        )
 
         with self.engine.begin() as conn:
             res = conn.execute(q)
@@ -134,15 +131,15 @@ def gen_pdf():
     segment_db = SegmentDb()
     completed_files = segment_db.get_completed()
     print("total files", len(get_open_access_article_pdfs()))
-    #print("files to consider", get_open_access_article_pdfs())
+    # print("files to consider", get_open_access_article_pdfs())
     rem_files = [
         item
         for item in get_open_access_article_pdfs()
         if item.is_on_disk
-        #and item.language == "icelandic"
+        # and item.language == "icelandic"
         and item.url not in completed_files
     ]
-    #print(rem_files)
+    # print(rem_files)
     print("remaining files", len(rem_files))
     for (idx, item) in enumerate(rem_files):
         try:
@@ -245,4 +242,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -15,7 +15,6 @@ from utils import get_open_access_article_pdfs
 import config
 
 
-
 def clean_dirty_state(skemman_file):
     pass
 
@@ -61,9 +60,11 @@ def fetch_status():
         )
     )
 
+
 def is_dir(string):
     path = Path(string)
     return path if path.is_dir() else False
+
 
 def main():
     import argparse

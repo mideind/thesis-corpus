@@ -1,4 +1,3 @@
-
 import time
 
 from skemman_db import SkemmanDb
@@ -6,7 +5,7 @@ from skemman import Skemman
 import config
 import utils
 
-MAX_PAGE_IDX = 1441 # TODO: Get rid of this
+MAX_PAGE_IDX = 1441  # TODO: Get rid of this
 
 
 def scrape_skemman(max_documents: int):
@@ -45,7 +44,7 @@ def scrape_skemman(max_documents: int):
                     print(f"Could not parse {doc.href}")
 
             time.sleep(config.scrape_delay)
-                    
+
         if remaining_count <= 0:
             break
         db.insert_page(page_idx)

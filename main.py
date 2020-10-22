@@ -23,47 +23,47 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--status",
-        dest = "status",
-        action = "store_true",
-        required = False,
-        help = "Print some info about what's currently in the database."
+        dest="status",
+        action="store_true",
+        required=False,
+        help="Print some info about what's currently in the database.",
     )
 
     parser.add_argument(
         "--data-dir",
-        dest = "data_dir",
-        required = False,
-        default = "./data/",
-        type = Path,
-        help = "Base directory to store data."
+        dest="data_dir",
+        required=False,
+        default="./data/",
+        type=Path,
+        help="Base directory to store data.",
     )
 
     parser.add_argument(
         "--max-documents",
-        dest = "max_docs",
-        required = False,
-        default = 10,
-        type = int,
-        help = "Maximum amount of documents to fetch. Set to -1 to fetch all found documents."
+        dest="max_docs",
+        required=False,
+        default=10,
+        type=int,
+        help="Maximum amount of documents to fetch. Set to -1 to fetch all found documents.",
     )
 
     parser.add_argument(
         "--scrape-delay",
-        dest = "scrape_delay",
-        required = False,
-        default = 1.0,
-        type = float,
-        help = "Number of seconds to wait between concurrent requests when scraping data."
+        dest="scrape_delay",
+        required=False,
+        default=1.0,
+        type=float,
+        help="Number of seconds to wait between concurrent requests when scraping data.",
     )
 
     parser.add_argument(
         "--actions",
-        dest = "actions",
-        required = False,
-        default = None,
-        nargs = '*',
-        choices = ['scrape', 'download', 'extract', 'clean', 'abstracts'],
-        help = "What actions to perform. Default is to run all actions. Be aware that some action combinations may not make sense depending on what has been done before."
+        dest="actions",
+        required=False,
+        default=None,
+        nargs="*",
+        choices=["scrape", "download", "extract", "clean", "abstracts"],
+        help="What actions to perform. Default is to run all actions. Be aware that some action combinations may not make sense depending on what has been done before.",
     )
 
     args = parser.parse_args()
@@ -78,19 +78,18 @@ if __name__ == "__main__":
 
     do_all = args.actions is None
 
-    if do_all or 'scrape' in args.actions:
+    if do_all or "scrape" in args.actions:
         thesis_scraper.scrape_skemman(args.max_docs)
 
-    if do_all or  'download' in args.actions:
+    if do_all or "download" in args.actions:
         sync.download_files()
 
-    if do_all or  'extract' in args.actions:
+    if do_all or "extract" in args.actions:
         segment_skemman.gen_pdf()
 
-    if do_all or  'clean' in args.actions:
-       clean_segments.clean_current_db()
+    if do_all or "clean" in args.actions:
+        clean_segments.clean_current_db()
 
-    if do_all or  'abstracts' in args.actions:
+    if do_all or "abstracts" in args.actions:
         # TODO
         pass
-

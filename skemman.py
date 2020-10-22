@@ -48,11 +48,14 @@ _SUBS = {
     ",": ".",
 }
 SUBS = tuple(_SUBS.items())
+
+
 def transliterate_path(text):
     out = text
     for sub in SUBS:
         out = out.replace(*sub)
     return out
+
 
 """
 root table is here:
@@ -81,7 +84,7 @@ logger.setLevel(logging.INFO)
 
 def breadcrumbs_to_path(breadcrumbs):
     breadcrumbs = [item.replace("/", "-") for item in breadcrumbs]
-    #return utils.transliterate_path("/".join(breadcrumbs)).lower()
+    # return utils.transliterate_path("/".join(breadcrumbs)).lower()
     return transliterate_path("/".join(breadcrumbs)).lower()
 
 
@@ -127,16 +130,10 @@ class SkemmanDocument:
         document_attrs = []
         for attr in content_metadata.find_all("div", class_="attr"):
             label_elem = attr.find("span", class_="attrLabel")
-            label = (
-                label_elem.text.strip() if hasattr(label_elem, "text") else label_elem
-            )
+            label = label_elem.text.strip() if hasattr(label_elem, "text") else label_elem
 
             content_elem = attr.find("div", class_="attrContent")
-            content = (
-                content_elem.text.strip()
-                if hasattr(content_elem, "text")
-                else content_elem
-            )
+            content = content_elem.text.strip() if hasattr(content_elem, "text") else content_elem
 
             if label is None or content is None:
                 continue
@@ -295,7 +292,7 @@ class Skemman:
     @classmethod
     def get_page_url(cls, page_idx):
         """Get page url of all results of page_idx.
-            Note page_idx is one-index based. """
+        Note page_idx is one-index based."""
 
         start_idx = 0
         results_per_page = 25

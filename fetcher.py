@@ -17,8 +17,8 @@ class Fetcher:
 
     @classmethod
     def fetch_maybe(cls, url, path, save=False):
-        """ Fetch from url or from file if it has been
-            cached previously """
+        """Fetch from url or from file if it has been
+        cached previously"""
         if os.path.isfile(path):
             # print("Found %s" % os.path.basename(path))
             with open(path, "rb") as file:
@@ -68,12 +68,12 @@ def download_file(url, path, tmp_path, make_dirs=False):
     if make_dirs:
         os.makedirs(path.parent, exist_ok=True)
 
-    # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests 
+    # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
     # TODO: compare shutil.copyfileobj(r.raw, f) to chunk streaming
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
-        with open(tmp_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192): 
+        with open(tmp_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
             os.fsync(f)

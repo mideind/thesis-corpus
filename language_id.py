@@ -21,29 +21,29 @@ def load_model():
 
 def predict_lang(text):
     load_model()
-    return _model.predict(text, k=2) # returns top 2 matching languages
+    return _model.predict(text, k=2)  # returns top 2 matching languages
+
 
 def predict_all():
     seg_db = segment_skemman.SegmentDb()
     max_docid = seg_db.get_max_docid()
 
-    for i in range(1, max_docid+1):
-        pred = predict_lang(''.join(seg_db.get_segments_for_document(i)))
-        if pred[0][0] != '__label__is' and pred[0][0] != '__label__en':
+    for i in range(1, max_docid + 1):
+        pred = predict_lang("".join(seg_db.get_segments_for_document(i)))
+        if pred[0][0] != "__label__is" and pred[0][0] != "__label__en":
             print("predicted non is/en", i, pred)
         if pred[1][0] < 0.9:
             print("low certainty", i, pred)
-        #TODO: save results.
+        # TODO: save results.
         # Some documents contain passages in both Icelandic and English.
         # Need to mark the language separately for these passages.
-    
 
 
-if __name__ == '__main__':
-    #print(predict_lang("i should buy a boat"))
-    #print(predict_lang("ég ætti að kaupa bát"))
+if __name__ == "__main__":
+    # print(predict_lang("i should buy a boat"))
+    # print(predict_lang("ég ætti að kaupa bát"))
 
-    #seg_db = segment_skemman.SegmentDb()
-    #print(predict_lang(''.join(seg_db.get_segments_for_document(3))))
+    # seg_db = segment_skemman.SegmentDb()
+    # print(predict_lang(''.join(seg_db.get_segments_for_document(3))))
 
     predict_all()

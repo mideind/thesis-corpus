@@ -10,6 +10,7 @@ from alternative_extractions import extract_with_pdfbox
 
 try:
     from icecream import ic
+
     ic.configureOutput(includeContext=True)
 except ImportError:  # Graceful fallback if IceCream isn't installed.
     ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
@@ -128,7 +129,17 @@ SAMPLE_INDEX = 1
 SAMPLE_PATH = PATHS[SAMPLE_INDEX]
 ENG_START_PATS = ("Abstract", "ABSTRACT")
 ISL_START_PATS = ("Abstrakt", "ABSTRAKT", "Ágrip", "ÁGRIP", "Útdráttur", "ÚTDRÁTTUR")
-ISL_END_KWORDS = ("Lykilhugtök", "Lykil hugtök", "Lykilorð", "Lykil orð", "Efnisorð", "Efnis orð", ".....", "Formáli", "Efnisyfirlit")
+ISL_END_KWORDS = (
+    "Lykilhugtök",
+    "Lykil hugtök",
+    "Lykilorð",
+    "Lykil orð",
+    "Efnisorð",
+    "Efnis orð",
+    ".....",
+    "Formáli",
+    "Efnisyfirlit",
+)
 ENG_END_KWORDS = ("Keywords", "Key words", ".....", "Table of contents", "Key terms")
 
 ISL_END_PATS = ISL_END_KWORDS + ENG_START_PATS
@@ -136,6 +147,7 @@ ENG_END_PATS = ENG_START_PATS + ISL_START_PATS + ISL_END_PATS
 
 NUMERAL_RX = re.compile("^([iIvVxX0-9])+$")
 HLINE = 88 * "#"
+
 
 def as_pages(stream):
     page = []
@@ -153,7 +165,9 @@ def render_file(path):
         pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K"], stdin=subprocess.PIPE, stdout=sys.stdout)
         line_idx = -1
         for idx, page in enumerate(as_pages(read_file(path))):
-            pager.stdin.write(b"----------------------------------------------------------------------------------------\n")
+            pager.stdin.write(
+                b"----------------------------------------------------------------------------------------\n"
+            )
             for line in page:
                 line_idx += 1
                 pager.stdin.write(line.encode("utf8"))
@@ -183,6 +197,7 @@ def paged_render(text):
 
 def get_abstracts_from_text(text):
     lines = text.split("\n")
+
     def get_contiguous_text_at_pat(lines, patterns):
         start_idx = None
         for line_idx, line in enumerate(lines):
@@ -198,6 +213,7 @@ def get_abstracts_from_text(text):
             else:
                 break
         return return_lines
+
     eng = get_contiguous_text_at_pat(lines, ENG_START_PATS)
     isl = get_contiguous_text_at_pat(lines, ISL_START_PATS)
     return eng, isl
@@ -238,7 +254,9 @@ class Document:
             pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K"], stdin=subprocess.PIPE, stdout=sys.stdout)
             line_idx = -1
             for idx, page in enumerate(self.pages):
-                pager.stdin.write(b"----------------------------------------------------------------------------------------\n")
+                pager.stdin.write(
+                    b"----------------------------------------------------------------------------------------\n"
+                )
                 for line in page:
                     line_idx += 1
                     pager.stdin.write(line.encode("utf8"))
@@ -325,9 +343,9 @@ class PdfBoxOutput:
             f"eng: {self.eng_offsets}",
         ]
         output.extend([HLINE] * 3)
-        output.extend(self.lines[isl_start: isl_start + self.max_abstract_len])
+        output.extend(self.lines[isl_start : isl_start + self.max_abstract_len])
         output.extend([HLINE] * 3)
-        output.extend(self.lines[eng_start: eng_start + self.max_abstract_len])
+        output.extend(self.lines[eng_start : eng_start + self.max_abstract_len])
         paged_render("\n".join(output))
 
     def find_abstract_end_isl(self):
@@ -337,7 +355,7 @@ class PdfBoxOutput:
         start = self.isl_offsets[0]
         end = min(start + self.max_abstract_len, len(self.lines) - start)
         # ic(end)
-        for line_idx, line in enumerate(self.lines[start + 1: end], start + 1):
+        for line_idx, line in enumerate(self.lines[start + 1 : end], start + 1):
             # ic(line)
             curr_is_empty = line.strip() == ""
             # num_empty = num_empty + 1 if line_empty_or_numeral(line) else 0
@@ -357,7 +375,7 @@ class PdfBoxOutput:
         end = min(start + self.max_abstract_len, len(self.lines) - start)
         num_empty = 0
         # ic(end)
-        for line_idx, line in enumerate(self.lines[start + 1: end], start + 1):
+        for line_idx, line in enumerate(self.lines[start + 1 : end], start + 1):
             # ic(line)
             # num_empty = num_empty + 1 if line_empty_or_numeral(line) else 0
             num_empty = num_empty + 1 if line.strip() == "" else 0
@@ -382,9 +400,9 @@ class PdfBoxOutput:
             f"eng: {self.eng_offsets}   end: {eng_end}",
         ]
         output.extend([HLINE] * 3)
-        output.extend(self.lines[isl_start: isl_end])
+        output.extend(self.lines[isl_start:isl_end])
         output.extend([HLINE] * 3)
-        output.extend(self.lines[eng_start: eng_end])
+        output.extend(self.lines[eng_start:eng_end])
         # input("Press enter to render...")
         paged_render("\n".join(output))
 
@@ -396,13 +414,12 @@ class PdfBoxOutput:
         isl_end = self.find_abstract_end_isl()
         eng_start = self.eng_offsets[0]
         eng_end = self.find_abstract_end_eng()
-        isl_abs = self.lines[isl_start: isl_end]
-        eng_abs = self.lines[eng_start: eng_end]
+        isl_abs = self.lines[isl_start:isl_end]
+        eng_abs = self.lines[eng_start:eng_end]
         return "\n".join(eng_abs), "\n".join(isl_abs)
 
 
 class AbstractsDb:
-
     def __init__(self):
         self.db_file = config.db_dir() / "abstracts.db"
         self.db_url = "sqlite:///" + str(self.db_file)
@@ -569,6 +586,7 @@ isl_out.close()
 # print(db.contains_path("mypath1"))
 # sys.exit(0)
 
+
 def do_extract_all():
     random.seed(1234567)
     paths = list(PATHS)
@@ -610,4 +628,3 @@ def do_extract_all():
         # input()
         # prevent overheating
         time.sleep(3)
-

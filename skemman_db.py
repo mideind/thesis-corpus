@@ -119,18 +119,21 @@ class SkemmanDb:
                     ?)"""
 
         date_inserted = str(datetime.date.today())
-        params = [(
-            sfile.href,
-            sfile.fname,
-            sfile.size,
-            sfile.access,
-            sfile.descr,
-            sfile.ftype,
-            False,
-            rel_dir,
-            date_inserted,
-            document_id,
-        ) for sfile in filelist]
+        params = [
+            (
+                sfile.href,
+                sfile.fname,
+                sfile.size,
+                sfile.access,
+                sfile.descr,
+                sfile.ftype,
+                False,
+                rel_dir,
+                date_inserted,
+                document_id,
+            )
+            for sfile in filelist
+        ]
         try:
             with self.conn as c:
                 return c.executemany(sql, params)
