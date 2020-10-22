@@ -11,13 +11,13 @@ fi
 
 # Run against the actual thing we're committing, not what's in the directory ATM
 # (No idea how safe this is)
-git stash -k -u 2>&1 > /dev/null
+git stash -k -u >/dev/null 2>&1
 cmd='black --check *.py'
 echo "Running check: $cmd"
-eval $cmd
+eval "$cmd"
 result=$?
 # Restore state
-git stash pop 2>&1 > /dev/null
+git stash pop >/dev/null 2>&1
 
 if [[ $result -eq 0 ]]; then
     echo "Linter OK"
