@@ -19,7 +19,9 @@ def print_status():
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Download and extract text from pdf files.")
+    parser = argparse.ArgumentParser(
+        description="Download and extract text from pdf files."
+    )
 
     parser.add_argument(
         "--status",

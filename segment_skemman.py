@@ -17,7 +17,16 @@ except ImportError:  # Silently ignore if IceCream isn't installed.
 
 import sqlalchemy
 import sqlalchemy.sql
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, Sequence, func
+from sqlalchemy import (
+    Table,
+    Column,
+    Integer,
+    String,
+    MetaData,
+    ForeignKey,
+    Sequence,
+    func,
+)
 
 from typing import Dict, Any
 
@@ -83,7 +92,9 @@ class SegmentDb:
             Column("id", sqlalchemy.Integer, autoincrement=True, primary_key=True),
             Column("sentence_index", sqlalchemy.Integer),
             Column("text", sqlalchemy.String),
-            Column("document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")),
+            Column(
+                "document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")
+            ),
         )
         self.cleaned_segments = Table(
             "cleaned_segments",
@@ -91,7 +102,9 @@ class SegmentDb:
             Column("id", sqlalchemy.Integer, autoincrement=True, primary_key=True),
             Column("segment_index", sqlalchemy.Integer),
             Column("text", sqlalchemy.String),
-            Column("document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")),
+            Column(
+                "document_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("documents.id")
+            ),
             Column("metadata", sqlalchemy.String),
         )
         metadata.create_all(self.engine)
@@ -100,7 +113,14 @@ class SegmentDb:
         with self.engine.begin() as connection:
             result = connection.execute(self.documents.insert(), skemman_id=skemman_id)
             key = result.inserted_primary_key[0]
-            segs = [{"sentence_index": segment.index, "text": segment.text, "document_id": key} for segment in segments]
+            segs = [
+                {
+                    "sentence_index": segment.index,
+                    "text": segment.text,
+                    "document_id": key,
+                }
+                for segment in segments
+            ]
             connection.execute(self.segments.insert(), segs)
 
     def get_completed(self):

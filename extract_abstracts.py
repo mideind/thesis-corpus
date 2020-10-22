@@ -162,7 +162,11 @@ def as_pages(stream):
 
 def render_file(path):
     try:
-        pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K"], stdin=subprocess.PIPE, stdout=sys.stdout)
+        pager = subprocess.Popen(
+            ["less", "-F", "-R", "-S", "-X", "-K"],
+            stdin=subprocess.PIPE,
+            stdout=sys.stdout,
+        )
         line_idx = -1
         for idx, page in enumerate(as_pages(read_file(path))):
             pager.stdin.write(
@@ -183,7 +187,11 @@ def render_file(path):
 
 def paged_render(text):
     try:
-        pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K"], stdin=subprocess.PIPE, stdout=sys.stdout)
+        pager = subprocess.Popen(
+            ["less", "-F", "-R", "-S", "-X", "-K"],
+            stdin=subprocess.PIPE,
+            stdout=sys.stdout,
+        )
         pager.stdin.write(text.encode("utf8"))
         pager.stdin.write(b"\n")
         pager.stdin.flush()
@@ -251,7 +259,11 @@ class Document:
     def draw(self):
         self._maybe_get_pages()
         try:
-            pager = subprocess.Popen(["less", "-F", "-R", "-S", "-X", "-K"], stdin=subprocess.PIPE, stdout=sys.stdout)
+            pager = subprocess.Popen(
+                ["less", "-F", "-R", "-S", "-X", "-K"],
+                stdin=subprocess.PIPE,
+                stdout=sys.stdout,
+            )
             line_idx = -1
             for idx, page in enumerate(self.pages):
                 pager.stdin.write(
@@ -430,7 +442,9 @@ class AbstractsDb:
             "abstracts",
             metadata,
             # Column("id", sqlalchemy.Integer, start=1, autoincrement=True, unique=True),
-            Column("path", sqlalchemy.String, unique=True, nullable=False, primary_key=True),
+            Column(
+                "path", sqlalchemy.String, unique=True, nullable=False, primary_key=True
+            ),
             Column("isl", sqlalchemy.String, unique=True, nullable=False),
             Column("eng", sqlalchemy.String, unique=True, nullable=False),
         )
@@ -534,7 +548,9 @@ for (path, isl, eng) in items:
         continue
     isl_line_count = isl.count("\n")
     eng_line_count = eng.count("\n")
-    if (isl_line_count < 3 or 150 < isl_line_count) or (eng_line_count < 3 or 150 < eng_line_count):
+    if (isl_line_count < 3 or 150 < isl_line_count) or (
+        eng_line_count < 3 or 150 < eng_line_count
+    ):
         print("skipped line count")
         continue
     PUNCTS = "!?."

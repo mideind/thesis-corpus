@@ -130,10 +130,16 @@ class SkemmanDocument:
         document_attrs = []
         for attr in content_metadata.find_all("div", class_="attr"):
             label_elem = attr.find("span", class_="attrLabel")
-            label = label_elem.text.strip() if hasattr(label_elem, "text") else label_elem
+            label = (
+                label_elem.text.strip() if hasattr(label_elem, "text") else label_elem
+            )
 
             content_elem = attr.find("div", class_="attrContent")
-            content = content_elem.text.strip() if hasattr(content_elem, "text") else content_elem
+            content = (
+                content_elem.text.strip()
+                if hasattr(content_elem, "text")
+                else content_elem
+            )
 
             if label is None or content is None:
                 continue

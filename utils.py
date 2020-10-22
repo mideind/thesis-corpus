@@ -66,7 +66,9 @@ def transliterate_path(text):
     return out
 
 
-def filter_open_access_main_pdfs(item_list, limit_file_size=True, verbose=False, dump=False):
+def filter_open_access_main_pdfs(
+    item_list, limit_file_size=True, verbose=False, dump=False
+):
     accum = 0
     unfiltered = []
     files_out = []
@@ -179,7 +181,11 @@ def filter_open_access_main_pdfs(item_list, limit_file_size=True, verbose=False,
             # whitelist
             accum += size_in_mb
             files_out.append(item_tup)
-        elif "Opinn" not in access or ".pdf" not in lname or any(word in ldescr for word in descr_blacklist):
+        elif (
+            "Opinn" not in access
+            or ".pdf" not in lname
+            or any(word in ldescr for word in descr_blacklist)
+        ):
             # blacklist
             files_blocked.append(file_tup)
         elif not ldescr:
