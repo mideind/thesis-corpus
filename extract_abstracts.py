@@ -1,4 +1,3 @@
-from pathlib import Path
 import sys, subprocess
 import traceback
 import tempfile
@@ -20,6 +19,8 @@ import tokenizer
 import sqlalchemy
 import sqlalchemy.sql
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, Sequence
+
+import config
 
 """
 .mode lines

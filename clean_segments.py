@@ -1,4 +1,4 @@
-from segment_cleaner import *
+from segment_cleaner import SegmentCleaner
 import segment_skemman
 
 
@@ -17,7 +17,8 @@ def clean_current_db():
     segs = seg_db.get_segments_for_document(i)
     cleaner = SegmentCleaner.default_cleaner()
 
-    cleaned = cleaner.clean_segments(segs)
+    cleaner.clean_segments(segs)
+    # cleaned = cleaner.clean_segments(segs)
     # for s in cleaned:
     # print(s)
 

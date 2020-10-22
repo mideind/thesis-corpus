@@ -1,7 +1,4 @@
-from pprint import pprint
 from collections import namedtuple
-import os
-from pathlib import Path
 import re
 
 try:
@@ -13,8 +10,6 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
 
 from skemman import SkemmanFile
 from skemman_db import SkemmanDb
-
-import config
 
 _SUBS = {
     "á": "a",

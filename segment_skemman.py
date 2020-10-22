@@ -2,11 +2,10 @@ import os
 import time
 import random
 from pathlib import Path
-from collections import Counter, namedtuple
+from collections import namedtuple
 import subprocess
 import traceback
 import uuid
-import shutil
 
 try:
     from icecream import ic
@@ -20,20 +19,14 @@ import sqlalchemy.sql
 from sqlalchemy import (
     Table,
     Column,
-    Integer,
-    String,
-    MetaData,
-    ForeignKey,
-    Sequence,
     func,
 )
 
 from typing import Dict, Any
 
 from reynir import bintokenizer
-from tokenizer import paragraphs, mark_paragraphs, correct_spaces
+from tokenizer import paragraphs, correct_spaces
 
-from skemman_db import SkemmanDb
 from utils import get_open_access_article_pdfs
 
 import config

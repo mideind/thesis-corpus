@@ -65,7 +65,8 @@ if __name__ == "__main__":
         default=None,
         nargs="*",
         choices=["scrape", "download", "extract", "clean", "abstracts"],
-        help="What actions to perform. Default is to run all actions. Be aware that some action combinations may not make sense depending on what has been done before.",
+        help="What actions to perform. Default is to run all actions. Be aware that some"
+        "action combinations may not make sense depending on what has been done before.",
     )
 
     args = parser.parse_args()

@@ -3,7 +3,6 @@
 import os
 import time
 import requests
-import shutil
 
 
 TIME_TIL_RETRY = 0.01

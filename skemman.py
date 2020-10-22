@@ -1,5 +1,4 @@
 import logging
-from pprint import pprint
 import urllib.parse
 from collections import namedtuple
 import os

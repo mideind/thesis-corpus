@@ -1,9 +1,3 @@
-# https://stackoverflow.com/questions/34606382/pdfminer-extract-text-with-its-font-information
-
-RESOURCE_PATH = "/home/haukur/Projects/thesiscorpus/samples/sample_thesis.pdf"
-OUTPUT_PATH = "/home/haukur/Projects/thesiscorpus/samples/test.output.txt"
-
-
 #!/usr/bin/env python
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
@@ -13,6 +7,11 @@ from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.layout import LAParams
 from pdfminer.converter import PDFPageAggregator
 import pdfminer
+
+# https://stackoverflow.com/questions/34606382/pdfminer-extract-text-with-its-font-information
+
+RESOURCE_PATH = "/home/haukur/Projects/thesiscorpus/samples/sample_thesis.pdf"
+OUTPUT_PATH = "/home/haukur/Projects/thesiscorpus/samples/test.output.txt"
 
 
 def createPDFDoc(fpath):

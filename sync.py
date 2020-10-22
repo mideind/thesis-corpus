@@ -1,4 +1,3 @@
-import os
 import time
 from pathlib import Path
 import traceback
@@ -98,7 +97,7 @@ def main():
     if args.status:
         fetch_status()
     elif args.sync:
-        download_files(download_dir=args.dir)
+        download_files()
     else:
         print("No argument supplied, type -h for help.")
 

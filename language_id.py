@@ -3,7 +3,6 @@
 import fasttext
 
 import segment_skemman
-import sqlalchemy
 
 _model = None
 

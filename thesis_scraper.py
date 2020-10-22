@@ -40,7 +40,7 @@ def scrape_skemman(max_documents: int):
                     remaining_count -= 1
                     if remaining_count <= 0:
                         break
-                except AttributeError as e:
+                except AttributeError:
                     print(f"Could not parse {doc.href}")
 
             time.sleep(config.scrape_delay)
