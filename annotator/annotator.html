@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="utf-8"/>
+
+    <head>
+    <title>Text annotator</title>
+    </head>
+
+    <style>
+        /* Disable text selection because it's annoying when dragging. */
+        body{
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        };
+
+    </style>
+
+    <body>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this issss text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this issss text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this issss text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this is text</p>
+        <p class="annotate_me">this issss text</p>
+        <p class="annotate_me">this is text</p>
+    </body>
+
+
+    <script>
+        var isHighlighting = false;
+        var isDragging = false;
+        var paragraphs = [];
+        var currentIndex = 0;
+
+        let COLOR_GOOD = "rgb(19, 143, 13)";
+        let COLOR_BAD = "rgb(245, 144, 137)";
+        
+		window.onload = function() {
+			paragraphs = document.getElementsByTagName('p');
+			for(var i = 0; i < paragraphs.length; i++) {
+				var p = paragraphs[i];
+                p.style.padding = 0;
+                p.style.margin = 0;
+                p.style.backgroundColor = COLOR_BAD;
+                //console.log(p.getBoundingClientRect());
+			}
+            //console.log("done loading");
+		};
+
+        window.addEventListener('mousedown', function(e) {
+            //console.log("window mousedown", e);
+
+            isDragging = true;
+
+            currentIndex = 0;
+            for(var i = 0; i < paragraphs.length; i++) {
+                if(e.clientY < paragraphs[i].getBoundingClientRect().y) {
+                    break;
+                }
+                currentIndex = i;
+            }
+
+            // isHighlighting = paragraphs[currentIndex].style.backgroundColor != COLOR_GOOD;
+            isHighlighting = e.buttons == 1;
+            if(isHighlighting) {
+                paragraphs[currentIndex].style.backgroundColor = COLOR_GOOD;
+            }
+            else {
+                paragraphs[currentIndex].style.backgroundColor = COLOR_BAD;
+            }
+        });
+
+        window.addEventListener('mouseup', function(e) {
+            isDragging = false;
+            //console.log("window mouseup", e);
+        });
+
+        window.addEventListener('mousemove', function(e) {
+            if(isDragging) {
+                //console.log("window mousemove", e);
+                var color = COLOR_BAD;
+                if(isHighlighting) {
+                    color = COLOR_GOOD;
+                }
+                if(currentIndex-1 >= 0 && e.y < paragraphs[currentIndex-1].getBoundingClientRect().bottom) {
+                    currentIndex = currentIndex-1;
+                }
+                if(currentIndex+1 < paragraphs.length && e.y > paragraphs[currentIndex+1].getBoundingClientRect().top) {
+                    currentIndex = currentIndex+1;
+                }
+                paragraphs[currentIndex].style.backgroundColor = color;
+            }
+        });
+
+        // Prevent right click menu because it's in the way.
+        window.addEventListener('contextmenu', function(e) {
+             if(event.preventDefault != undefined)
+                  event.preventDefault();
+             if(event.stopPropagation != undefined)
+                  event.stopPropagation();
+            return false;
+        });
+    </script>
+
+</html>
