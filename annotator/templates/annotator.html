@@ -15,31 +15,20 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-        };
+        }
 
     </style>
 
     <body>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this issss text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this issss text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this issss text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this is text</p>
-        <p class="annotate_me">this issss text</p>
-        <p class="annotate_me">this is text</p>
+        <p>Instructions: Left click to mark "keep" and right click to mark "don't keep". Dragging works.</p>
+        <p id="stats">stats</p>
+        <p id="current_doc">(no document loaded)</p>
+        
+        <button type="button" onclick="nextfile()">Save and load next</button>
+        
+        <div id="annotate_zone">
+            (click the button)
+        </div>
     </body>
 
 
@@ -48,30 +37,124 @@
         var isDragging = false;
         var paragraphs = [];
         var currentIndex = 0;
+        var currentDocumentIndex = -1;
+        var lastMouseY = 0;
 
-        let COLOR_GOOD = "rgb(19, 143, 13)";
-        let COLOR_BAD = "rgb(245, 144, 137)";
+        let COLOR_GOOD = "rgb(0, 153, 51)";
+        let COLOR_GOOD_TEMP = "rgb(0, 179, 60)";
+        let COLOR_BAD = "rgb(255, 133, 102)";
+        let COLOR_BAD_TEMP = "rgb(255, 173, 153)";
+
+        // What a hack.
+        let unannotated = [
+        {% for u in unannotated %}
+            "{{ u }}",
+        {% endfor %}
+        ];
+
+        function updateStats(done_count) {
+            var p = document.getElementById('stats');
+            p.innerHTML = "Annotated " + done_count + "/" + unannotated.length + " documents so far.";
+        };
+
+        function saveCurrentDocument() {
+            console.log("saving");
+            var lines = [];
+            paragraphs.forEach(function(p) {
+                var text = p.textContent;
+                if(p.style.backgroundColor == COLOR_GOOD) {
+                    text = "x " + text;
+                }
+                else {
+                    text = "  " + text;
+                }
+                lines.push(text);
+            });
+
+            
+            console.log(lines.join('\n'));
+
+            console.log("don savign");
+        };
+
+        function loadDocument(index) {
+            console.log("loading document no " + index);
+            var curr = document.getElementById('current_doc');
+            curr.innerHTML = "Loading " + unannotated[index];
+
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                var zone = document.getElementById('annotate_zone');
+                zone.innerHTML = "";
+                paragraphs = [];
+                var curr = document.getElementById('current_doc');
+
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    xmlHttp.responseText.split('\n').forEach(function(line) {
+                        let p = document.createElement('p');
+                        p.textContent = line;
+                        p.style.padding = 0;
+                        p.style.margin = 0;
+                        p.style.backgroundColor = COLOR_BAD;
+                        zone.appendChild(p);
+                        paragraphs.push(p);
+                        curr.innerHTML = "Working on " + unannotated[index];
+                    });
+                }
+                else {
+                    curr.innerHTML = "(no document loaded)";
+                    if(index >= unannotated.length) {
+                        zone.textContent = "All done!";
+                    }
+                    else {
+                        zone.textContent = "Error loading document '" + unannotated[index] + "' (this shouldn't happen?)";
+                    }
+                }
+            }
+            xmlHttp.open("GET", unannotated[index], true); // true for asynchronous 
+            xmlHttp.send(null);
+        };
+
+        function nextfile() {
+            if(currentDocumentIndex >= 0) {
+                saveCurrentDocument();
+            }
+            currentDocumentIndex += 1;
+            updateStats(currentDocumentIndex);
+            loadDocument(currentDocumentIndex);
+        };
         
-		window.onload = function() {
-			paragraphs = document.getElementsByTagName('p');
-			for(var i = 0; i < paragraphs.length; i++) {
-				var p = paragraphs[i];
+
+        window.onload = function() {
+            paragraphs = document.getElementsByClassName('annotate_me');
+            for(var i = 0; i < paragraphs.length; i++) {
+                var p = paragraphs[i];
                 p.style.padding = 0;
                 p.style.margin = 0;
                 p.style.backgroundColor = COLOR_BAD;
                 //console.log(p.getBoundingClientRect());
-			}
+            }
             //console.log("done loading");
-		};
+            updateStats(0);
+        };
 
         window.addEventListener('mousedown', function(e) {
             //console.log("window mousedown", e);
 
+            // Don't do anything if we're clicking outside the highlight zone.
+            if(paragraphs.length == 0
+                || e.y < paragraphs[0].getBoundingClientRect().top
+                || e.y > paragraphs[paragraphs.length-1].getBoundingClientRect().bottom)
+            {
+                return;
+            }
+
             isDragging = true;
+            lastMouseY = e.y;
 
             currentIndex = 0;
             for(var i = 0; i < paragraphs.length; i++) {
-                if(e.clientY < paragraphs[i].getBoundingClientRect().y) {
+                if(e.y < paragraphs[i].getBoundingClientRect().y) {
                     break;
                 }
                 currentIndex = i;
@@ -80,25 +163,35 @@
             // isHighlighting = paragraphs[currentIndex].style.backgroundColor != COLOR_GOOD;
             isHighlighting = e.buttons == 1;
             if(isHighlighting) {
-                paragraphs[currentIndex].style.backgroundColor = COLOR_GOOD;
+                paragraphs[currentIndex].style.backgroundColor = COLOR_GOOD_TEMP;
             }
             else {
-                paragraphs[currentIndex].style.backgroundColor = COLOR_BAD;
+                paragraphs[currentIndex].style.backgroundColor = COLOR_BAD_TEMP;
             }
         });
 
         window.addEventListener('mouseup', function(e) {
             isDragging = false;
-            //console.log("window mouseup", e);
+            paragraphs.forEach(function(p) {
+                if(p.style.backgroundColor == COLOR_BAD_TEMP) {
+                    p.style.backgroundColor = COLOR_BAD;
+                }
+                else if(p.style.backgroundColor == COLOR_GOOD_TEMP) {
+                    p.style.backgroundColor = COLOR_GOOD;
+                }
+            });
         });
 
         window.addEventListener('mousemove', function(e) {
             if(isDragging) {
+                
+                // TODO: þetta er "böggað". getur bara uppfært eina línu per event. virkar ekki vel ef maður hreyfir músina hratt
                 //console.log("window mousemove", e);
-                var color = COLOR_BAD;
+                var color = COLOR_BAD_TEMP;
                 if(isHighlighting) {
-                    color = COLOR_GOOD;
+                    color = COLOR_GOOD_TEMP;
                 }
+
                 if(currentIndex-1 >= 0 && e.y < paragraphs[currentIndex-1].getBoundingClientRect().bottom) {
                     currentIndex = currentIndex-1;
                 }

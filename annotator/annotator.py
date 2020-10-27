@@ -6,22 +6,26 @@
 #   FLASK_ENV=development FLASK_APP=annotator.py flask run
 
 import os
+from pathlib import Path
 
-from flask import Flask
+from flask import Flask, Response, render_template
 app = Flask(__name__)
 
 
-my_global_variable = 0
+def get_unannotated_files():
+    # TODO compare with list of already annotated files?
+    files = []
+    for (dirpath, dirnames, filenames) in os.walk("static/unannotated"):
+        files.extend([str(Path(dirpath) / filename) for filename in filenames])
+    return files
 
-@app.route('/')
+@app.route("/")
 def hello_world():
-    global my_global_variable
-    my_global_variable += 1
+    files = get_unannotated_files()
 
-    return 'bye' + str(my_global_variable)
+    return render_template("annotator.html", unannotated=files)
 
-@app.route('/unannotated')
+
+@app.route("/unannotated")
 def get_unannotated():
-    files = [f for f in os.listdir('static/unannotated')]
-    return '\n'.join(files)
-
+    return Response("\n".join(get_unannotated_files()), mimetype="text/plain")
