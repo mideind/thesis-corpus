@@ -4,6 +4,7 @@
 
     <head>
     <title>Text annotator</title>
+    <link rel="icon" href="data:,">
     </head>
 
     <style>
@@ -46,7 +47,7 @@
         let COLOR_BAD_TEMP = "rgb(255, 173, 153)";
 
         // What a hack.
-        let unannotated = [
+        let documents = [
         {% for u in unannotated %}
             "{{ u }}",
         {% endfor %}
@@ -54,12 +55,12 @@
 
         function updateStats(done_count) {
             var p = document.getElementById('stats');
-            p.innerHTML = "Annotated " + done_count + "/" + unannotated.length + " documents so far.";
+            p.innerHTML = "Annotated " + done_count + "/" + documents.length + " documents so far.";
         };
 
         function saveCurrentDocument() {
             console.log("saving");
-            var lines = [];
+            var lines = [documents[currentDocumentIndex]];
             paragraphs.forEach(function(p) {
                 var text = p.textContent;
                 if(p.style.backgroundColor == COLOR_GOOD) {
@@ -71,8 +72,12 @@
                 lines.push(text);
             });
 
-            
-            console.log(lines.join('\n'));
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/save", true);
+            xhr.setRequestHeader('Content-Type', 'text/plain');
+            xhr.send(lines.join("\n"));
+            console.log(lines.join("\n"));
 
             console.log("don savign");
         };
@@ -80,7 +85,7 @@
         function loadDocument(index) {
             console.log("loading document no " + index);
             var curr = document.getElementById('current_doc');
-            curr.innerHTML = "Loading " + unannotated[index];
+            curr.innerHTML = "Loading " + documents[index];
 
             var xmlHttp = new XMLHttpRequest();
             xmlHttp.onreadystatechange = function() { 
@@ -98,24 +103,28 @@
                         p.style.backgroundColor = COLOR_BAD;
                         zone.appendChild(p);
                         paragraphs.push(p);
-                        curr.innerHTML = "Working on " + unannotated[index];
+                        curr.innerHTML = "Working on " + documents[index];
                     });
                 }
                 else {
                     curr.innerHTML = "(no document loaded)";
-                    if(index >= unannotated.length) {
+                    if(index >= documents.length) {
                         zone.textContent = "All done!";
                     }
                     else {
-                        zone.textContent = "Error loading document '" + unannotated[index] + "' (this shouldn't happen?)";
+                        zone.textContent = "Error loading document '" + documents[index] + "' (this shouldn't happen?)";
                     }
                 }
             }
-            xmlHttp.open("GET", unannotated[index], true); // true for asynchronous 
+            xmlHttp.open("GET", documents[index], true); // true for asynchronous 
             xmlHttp.send(null);
         };
 
         function nextfile() {
+            if(currentDocumentIndex >= documents.length) {
+                return;
+            }
+
             if(currentDocumentIndex >= 0) {
                 saveCurrentDocument();
             }
@@ -124,17 +133,7 @@
             loadDocument(currentDocumentIndex);
         };
         
-
         window.onload = function() {
-            paragraphs = document.getElementsByClassName('annotate_me');
-            for(var i = 0; i < paragraphs.length; i++) {
-                var p = paragraphs[i];
-                p.style.padding = 0;
-                p.style.margin = 0;
-                p.style.backgroundColor = COLOR_BAD;
-                //console.log(p.getBoundingClientRect());
-            }
-            //console.log("done loading");
             updateStats(0);
         };
 

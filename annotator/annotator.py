@@ -8,24 +8,36 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, request
 app = Flask(__name__)
 
 
 def get_unannotated_files():
     # TODO compare with list of already annotated files?
     files = []
-    for (dirpath, dirnames, filenames) in os.walk("static/unannotated"):
-        files.extend([str(Path(dirpath) / filename) for filename in filenames])
+    for (dirpath, dirnames, filenames) in os.walk("static/textfiles"):
+        files.extend([str(Path(dirpath)/fn) for fn in filenames if fn.endswith(".txt")])
+    print(files)
     return files
 
 @app.route("/")
 def hello_world():
-    files = get_unannotated_files()
+    return render_template("annotator.html", unannotated=get_unannotated_files())
 
-    return render_template("annotator.html", unannotated=files)
+@app.route("/save", methods=['POST'])
+def save():
+    data = request.data.decode('utf-8').split('\n', 1)
+    filename = data[0]
+    contents = data[1]
 
+    print("fn: ", filename)
+    print(contents)
 
-@app.route("/unannotated")
-def get_unannotated():
-    return Response("\n".join(get_unannotated_files()), mimetype="text/plain")
+    try:
+        # Yes, we're trusting the client
+        with open(filename+'.annotated', 'w') as f:
+            f.write(contents)
+    except Exception as e:
+        return str(e)
+    
+    return ""
