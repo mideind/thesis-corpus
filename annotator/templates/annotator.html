@@ -183,21 +183,28 @@
 
         window.addEventListener('mousemove', function(e) {
             if(isDragging) {
-                
-                // TODO: þetta er "böggað". getur bara uppfært eina línu per event. virkar ekki vel ef maður hreyfir músina hratt
-                //console.log("window mousemove", e);
                 var color = COLOR_BAD_TEMP;
                 if(isHighlighting) {
                     color = COLOR_GOOD_TEMP;
                 }
 
-                if(currentIndex-1 >= 0 && e.y < paragraphs[currentIndex-1].getBoundingClientRect().bottom) {
-                    currentIndex = currentIndex-1;
+                // Color all lines to the cursor (we can cross many lines in one event)
+                while(e.y < paragraphs[currentIndex].getBoundingClientRect().top
+                    || e.y > paragraphs[currentIndex].getBoundingClientRect().bottom)
+                {
+                    if(currentIndex-1 >= 0 && e.y < paragraphs[currentIndex-1].getBoundingClientRect().bottom) {
+                        currentIndex = currentIndex-1;
+                    }
+                    if(currentIndex+1 < paragraphs.length && e.y > paragraphs[currentIndex+1].getBoundingClientRect().top) {
+                        currentIndex = currentIndex+1;
+                    }
+                    paragraphs[currentIndex].style.backgroundColor = color;
+
+                    // Stop coloring if we reach the end
+                    if(currentIndex == 0 || currentIndex == paragraphs.length-1) {
+                        break;
+                    }
                 }
-                if(currentIndex+1 < paragraphs.length && e.y > paragraphs[currentIndex+1].getBoundingClientRect().top) {
-                    currentIndex = currentIndex+1;
-                }
-                paragraphs[currentIndex].style.backgroundColor = color;
             }
         });
 
