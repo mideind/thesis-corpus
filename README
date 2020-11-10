@@ -1,0 +1,17 @@
+This is a collection of scripts to collect and process pdf files from the open access repositories Skemman and Hirslan.
+
+main.py : The entry point for scraping and processing Skemman.
+    Run with -h to get some help.
+
+main-hirslan.py : The entry point for scraping and processing Hirslan.
+    This is a rewrite and simplification of the Skemman program.
+    It does not have -h, but is hopefully easier to understand.
+    It should work on Skemman with some adjustments in the breadcrumb code (not tested yet).
+
+requirements.txt and requirements-hirslan.txt: Python environment lists from pip for main.py and main-hirslan.py respectively. 
+
+Both of these scripts will create a data folder and work inside that. If you're running them both, take care that you might not want them to be mixed.
+
+annotator/ is a tool for marking lines good or bad. This is hopefully useful for further processing of text.
+
+Some of the .py files can be executed to run simple test cases. This was mostly used for development and not for testing rigor.
